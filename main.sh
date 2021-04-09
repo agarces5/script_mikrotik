@@ -1,5 +1,6 @@
 #!/bin/bash
 
+#Leer variables
 {
 while IFS= read -r "lineNum"
 do
@@ -7,7 +8,15 @@ do
 done
 } <<< $@
 
+#Inicializar variables
+init="No se ha introducido"
+user=$init
+IP=$init
+script=$init
+comando=$init
 let i=0
+
+#Guardar argumentos en variables
 for VAR in $variables
 do
     if   [[ $user == 1 ]]; then user=$VAR
@@ -22,3 +31,7 @@ do
     fi
 done
 
+echo $user
+echo $IP
+echo $script
+echo $comando
