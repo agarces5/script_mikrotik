@@ -15,4 +15,4 @@ echo "Script? $script_local"
 #ftp $ip_remoto
 
 #ssh $usuario@$ip_remoto < $script_local  
-ssh $usuario@$ip_remoto  #import $script_local
+ssh $usuario@$ip_remoto 
