@@ -1,34 +1,34 @@
 #!/bin/bash
 
-#Leer variables
-{
-while IFS= read -r "lineNum"
-do
-    variables=${lineNum}
-done
-} <<< $@
-
 #Inicializar variables
 init="No se ha introducido"
-user=$init
-IP=$init
-script=$init
-comando=$init
+user=$init; IP=$init ;script=$init; comando=$init
 let i=0
 
-#Guardar argumentos en variables
-for VAR in $variables
+#Menu de ayuda
+help_menu()
+{
+    echo "Menu de ayuda"
+    echo "-u [usuario]          ---> Para determinar el usuario (admin por defecto)"
+    echo "-i [IP]               ---> Para poner la IP (obligatorio)"
+    echo "-s [ruta_script]      ---> Para poner el script"
+    echo "-c [comando]          ---> Comando para ejecutar en el router (el comando entre '' o \"\") "
+    exit 1
+}
+valido_ip=`echo $@ | grep '\-i'`
+if [[ $@ = "" || -z $valido_ip ]]; then
+    help_menu
+fi
+#Leer variables
+while getopts u:i:s:c: flag
 do
-    if   [[ $user == 1 ]]; then user=$VAR
-    elif [[ $IP == 1 ]]; then IP=$VAR
-    elif [[ $script == 1 ]]; then script=$VAR
-    elif [[ $comando == 1 ]]; then comando=$VAR
-    fi
-    if   [[ $VAR == "-u" ]]; then user=1
-    elif [[ $VAR == "-i" ]]; then IP=1
-    elif [[ $VAR == "-s" ]]; then script=1
-    elif [[ $VAR == "-c" ]]; then comando=1
-    fi
+    case "${flag}" in
+        u) user=${OPTARG};;
+        i) IP=${OPTARG};;
+        s) script=${OPTARG};;
+        c) comando=${OPTARG};;
+
+    esac
 done
 
 echo $user
