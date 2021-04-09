@@ -41,3 +41,20 @@ echo "El comando es: $comando"
 # echo "Usuario? $usuario"
 # echo "IP? $ip_remoto"
 # echo "Script? $script_local"
+
+#Formatear el archivo para poder mandar los comandos
+{
+while IFS= read -r linea
+do
+    if [[ `echo $linea | grep "^#"` ]]; then
+        continue
+    fi
+    echo $linea >> datos.dat  #Lo guardo en un archivo temporal
+done
+} < $script
+#Elimino los saltos de linea 
+# cat datos.dat | sed 's/$/ \\/' | tr '\n' 'n' > formateado.txt
+linea=`datos.dat`
+echo $linea
+ssh $user@$IP $linea
+rm datos.dat                  #Borro el archivo temporal
