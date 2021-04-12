@@ -2,6 +2,7 @@
 #Inicializar variables
 no_input="No se ha introducido"
 user=$no_input; script=$no_input; comando=$no_input; resp=$no_input; IP=$no_input;
+password=`cat pass.conf`
 #---------------------------------------------------------------------------------------------------------------------
 #-------------------######  ##  ##  ##  ##   ####   ######   ####   ##  ##  ######   ####  ---------------------------
 #-------------------##      ##  ##  ### ##  ##  ##    ##    ##  ##  ### ##  ##      ##     ---------------------------
@@ -29,19 +30,37 @@ mostrar_args(){
     echo "El script es: $script"
     echo "El comando es: $comando"
 }
+#---------------- LEER PASSWD SEGURO ----------------
+leer_passwd(){
+    # -- Se guarda la configuracion de la sesion
+    # stty actual.
+    STTY_SAVE=`stty -g`
+    stty -echo
+    
+    # -- Se solicita la introduccion del password al
+    # usuario:
+    echo
+    echo -n "Introduzca su password: "
+    read SECRET_PASSWD
+    
+    # -- Se restablece la sesion stty anterior.
+    stty $STTY_SAVE
+    echo
+}
 #---------------- EJECUTAR SCRIPT ----------------
 ejecutar_script(){
     if [[ $resp == $no_input ]]; then
         read -p "¿Deseas restablecer de fabrica el router y cargar el script (yes/No)? " resp
     fi
+    
     if [[ $resp == "yes" || $resp == "Yes"  || $resp == "y"  ]]; then
         echo "Restableciendo de fabrica y Ejecutando script"
         scp $script $user@$IP:configuracion.rsc > /dev/null
-        ssh $user@$IP "system reset-configuration no-defaults=yes run-after-reset=configuracion.rsc"
+        sshpass -p $SECRET_PASSWD ssh $user@$IP "system reset-configuration no-defaults=yes run-after-reset=configuracion.rsc"
     else
         echo "Ejecutando script"
         scp $script $user@$IP:configuracion.rsc > /dev/null
-        ssh $user@$IP "import configuracion.rsc"
+        sshpass -p $SECRET_PASSWD ssh $user@$IP "import configuracion.rsc"
     fi
 }
 #---------------- EJECUTAR COMANDO ----------------
@@ -73,9 +92,11 @@ if [[ $IP = $no_input ]]; then
 fi
 
 if [[ $script != $no_input ]]; then
+    leer_passwd
     ejecutar_script
 fi
 if [[ $comando != $no_input ]]; then
+    leer_passwd
     echo "Ejecutando comando"
     ejecutar_comando
 fi
