@@ -4,10 +4,33 @@
 #
 # model = RouterBOARD 962UiGS-5HacT2HnT
 # 
+/user set [find name=admin] password=1234
 /interface bridge
 add name=bridgeLAN
-/interface ethernet 
+/interface ethernet
 set [ find default-name=ether1 ] comment=WAN
+/interface wireless security-profiles
+set [ find default=yes ] supplicant-identity=MikroTik
+add authentication-types=wpa-psk,wpa2-psk eap-methods="" group-ciphers=\
+    tkip,aes-ccm management-protection=allowed mode=dynamic-keys name=\
+    Seguridad-2.4 supplicant-identity="" unicast-ciphers=tkip,aes-ccm \
+    wpa-pre-shared-key=clavewifi wpa2-pre-shared-key=clavewifi
+add authentication-types=wpa-psk,wpa2-psk eap-methods="" group-ciphers=\
+    tkip,aes-ccm management-protection=allowed mode=dynamic-keys name=\
+    Seguridad-5 supplicant-identity="" unicast-ciphers=tkip,aes-ccm \
+    wpa-pre-shared-key=clavewifi wpa2-pre-shared-key=clavewifi
+/interface wireless
+set [ find default-name=wlan1 ] antenna-gain=3 band=2ghz-b/g/n channel-width=\
+    20/40mhz-XX country=spain disabled=no frequency=auto frequency-mode=\
+    regulatory-domain mode=ap-bridge radio-name=MiMikroTik security-profile=\
+    Seguridad-2.4 ssid=laculpadesistemas2.4 wireless-protocol=802.11 \
+    wmm-support=enabled wps-mode=disabled
+set [ find default-name=wlan2 ] antenna-gain=3 band=5ghz-a/n/ac \
+    channel-width=20/40/80mhz-XXXX country=spain disabled=no frequency=auto \
+    frequency-mode=regulatory-domain installation=indoor mode=ap-bridge \
+    radio-name=MiMikroTik security-profile=Seguridad-5 ssid=\
+    laculpadesistemas-5 wireless-protocol=802.11 wmm-support=enabled \
+    wps-mode=disabled
 /ip pool
 add name=dhcp_pool0 ranges=192.168.111.2-192.168.111.254
 /ip dhcp-server
