@@ -13,7 +13,8 @@ help_menu()
 {
     echo "---------------------- Menu de ayuda ----------------------"
     echo "-u [usuario]              ---> Para determinar el usuario (admin por defecto)"
-    echo "-i [IP]                   ---> Para poner la IP (obligatorio)"
+    echo "-i [IP]                   ---> Para poner la IP"
+    echo "-r [IP/mask]              ---> Para poner una red (ej. 192.168.0.0/24)"
     echo "-s [ruta_script]          ---> Para poner el script"
     echo "-c [comando]              ---> Comando para ejecutar en el router (el comando entre '' o \"\") "
     echo "-p [ruta_file_passwd]     ---> Leer password desde fichero "
@@ -25,10 +26,10 @@ mostrar_args(){
     echo "-----------------------------------------------------------"
     echo "El usuario es: $user"
     echo "La IP es: $IP"
+    echo "La red es: $red"
     echo "El script es: $script"
     echo "El comando es: $comando"
     echo "El pass esta en: $passwdFile"
-    echo "La resp es: $resp" 
 }
 #---------------- LEER PASSWD SEGURO ----------------
 leer_passwd(){
@@ -42,7 +43,6 @@ leer_passwd(){
     echo
     echo -n "Introduzca su password: "
     read SECRET_PASSWD
-    SECRET_PASSWD="-p $SECRET_PASSWD"
     # -- Se restablece la sesion stty anterior.
     stty $STTY_SAVE
     echo
