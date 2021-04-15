@@ -1,11 +1,11 @@
 #!/bin/bash
 source funciones.sh
 #Inicializar variables
-user=admin
+user=admin; DIA=`date +"%d/%m/%Y-"`; HORA=`date +"%H:%M:%S"`
 #---------------------------------------------------------------------------------------------------------------------
 #--------------------------------- COMIENZO DEL SCRIPT ---------------------------------------------------------------
 #---------------------------------------------------------------------------------------------------------------------
-resp=$(echo $* | grep -iw "y$" | awk '{print $NF}')
+resp=$(echo $* | grep -w "y$" | awk '{print $NF}')
 #Leer variables
 while getopts u:i:s:c:p: flag; do
     case "${flag}" in
@@ -16,7 +16,6 @@ while getopts u:i:s:c:p: flag; do
     p) passwdFile=${OPTARG} ;;
     esac
 done
-mostrar_args
 if [[ -z $IP ]]; then
     echo "-----------------------------------------------------------"
     echo "Debes introducir una direccion IP"
@@ -27,28 +26,28 @@ if [[ -z $script && -z $comando ]]; then
     echo "No has introducido ni script ni comando"
 fi
 IFS=./ read -r i1 i2 i3 i4 mask <<<$IP
-if [[ -z $mask ]]; then
-    if [[ -n $script ]]; then
-        if [[ -n $passwdFile ]]; then
-            pass=$(ccrypt -c -k key pass.conf | grep $IP | awk '{print $NF}' | sed -e 's/\[//; s/\]//')
-            ejecutar_script -p $pass $script $user $IP
-            unset pass
-        else
-            leer_passwd
-            ejecutar_script -p $SECRET_PASSWD $script $user $IP
-        fi
-    fi
-    if [[ -n $comando ]]; then
-        if [[ -n $passwdFile ]]; then
-            pass=$(ccrypt -c -k key pass.conf | grep $IP | awk '{print $NF}' | sed -e 's/\[//; s/\]//')
-            ejecutar_comando -p $pass $user $IP $comando
-            unset pass
-        else
-            leer_passwd
-            ejecutar_comando -p $SECRET_PASSWD $user $IP $comando
-        fi
-    fi
-else
+
+if [[ -z $mask && -z $script && -z $passwdFile ]]; then
+    echo $IP
+    leer_passwd
+    ech"$DIA$HORA --> $IP"
+    ejecutar_comando -p $SECRET_PASSWD $user $IP $comando 2>>log.txt
+elif [[ -z $mask && -z $script && -n $passwdFile ]]; then
+    pass=$(ccrypt -c -k key $passwdFile | grep "\<$IP\>" | awk '{print $NF}' | sed -e 's/\[//; s/\]//')
+    ech"$DIA$HORA --> $IP"
+    ejecutar_comando -p $pass $user $IP $comando 2>>log.txt
+    unset pass
+elif [[ -z $mask && -n $script && -z $passwdFile ]]; then
+    echo $IP
+    leer_passwd
+    ech"$DIA$HORA --> $IP"
+    ejecutar_script -p $SECRET_PASSWD $script $user $IP 2>>log.txt
+elif [[ -z $mask && -n $script && -n $passwdFile ]]; then
+    pass=$(ccrypt -c -k key $passwdFile | grep "\<$IP\>" | awk '{print $NF}' | sed -e 's/\[//; s/\]//')
+    ech"$DIA$HORA --> $IP"
+    ejecutar_script -p $pass $script $user $IP 2>>log.txt
+    unset pass
+elif [[ -n $mask ]]; then
     red=$(network $i1.$i2.$i3.$i4 $mask)
     IFS=. read -r i1 i2 i3 i4 <<<$red
     broadcast=$(broadcast $i1.$i2.$i3.$i4 $mask)
@@ -68,26 +67,31 @@ else
         done
     done
     for ((m = 1; m < $((${#networkIP[@]} - 1)); m++)); do
-        # echo ${networkIP[$m]}
-        if [[ -n $script ]]; then
-            if [[ -n $passwdFile ]]; then
-                pass=$(ccrypt -c -k key pass.conf | grep ${networkIP[$m]} | awk '{print $NF}' | sed -e 's/\[//; s/\]//')
-                ejecutar_script -p $pass $script $user ${networkIP[$m]}
-                unset pass
-            else
-                leer_passwd
-                ejecutar_script -p $SECRET_PASSWD $script $user ${networkIP[$m]}
+        if [[ -n $script && -z $passwdFile ]]; then
+            echo $IP linea 67
+            leer_passwd
+            echo "$DIA$HORA --> $IP"
+            ejecutar_script -p $SECRET_PASSWD $script $user ${networkIP[$m]} 2>>log.txt
+        elif [[ -n $script && -n $passwdFile ]]; then
+            pass=$(ccrypt -c -k key $passwdFile | grep "\<${networkIP[$m]}\>" | awk '{print $NF}' | sed -e 's/\[//; s/\]//')
+            bool=$(ccrypt -c -k key $passwdFile | grep "\<${networkIP[$m]}\>")
+            if [[ ! $bool ]]; then
+                add_passwd ${networkIP[$m]} $pass
             fi
+            echo "$DIA$HORA --> $IP"
+            ejecutar_script -p $pass $script $user ${networkIP[$m]} 2>>log.txt
+            unset pass
         fi
-        if [[ -n $comando ]]; then
-            if [[ -n $passwdFile ]]; then
-                pass=$(ccrypt -c -k key pass.conf | grep ${networkIP[$m]} | awk '{print $NF}' | sed -e 's/\[//; s/\]//')
-                ejecutar_comando -p $pass $user ${networkIP[$m]} $comando
-                unset pass
-            else
-                leer_passwd
-                ejecutar_comando -p $SECRET_PASSWD $user ${networkIP[$m]} $comando
-            fi
+        if [[ -n $comando && -n $passwdFile ]]; then
+            pass=$(ccrypt -c -k key $passwdFile | grep "\<${networkIP[$m]}\>" | awk '{print $NF}' | sed -e 's/\[//; s/\]//')
+            echo "$DIA$HORA --> $IP"
+            ejecutar_comando -p "$pass" "$user" "${networkIP[$m]}" 2>>log.txt
+            unset pass
+        elif [[ -n $comando && -z $passwdFile ]]; then
+            echo $IP linea 84 
+            leer_passwd
+            echo "$DIA$HORA --> $IP"
+            ejecutar_comando -p $SECRET_PASSWD $user ${networkIP[$m]} 2>>log.txt
         fi
     done
 fi
