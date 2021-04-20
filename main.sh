@@ -26,7 +26,7 @@ fi
 if [[ -z $script && -z $comando ]]; then
     echo "No has introducido ni script ni comando"
 fi
-IFS=./ read -r i1 i2 i3 i4 mask <<<$IP
+IFS=./ read -r i1 i2 i3 i4 mask <<<$IP  # Leer y separar la IP y la mascara que introducimos
 if [[ -z $mask ]]; then
     if [[ -n $script ]]; then
         if [[ -n $passwdFile ]]; then
@@ -48,27 +48,26 @@ if [[ -z $mask ]]; then
             ejecutar_comando -p $SECRET_PASSWD $user $IP $comando
         fi
     fi
-else
-    red=$(network $i1.$i2.$i3.$i4 $mask)
-    IFS=. read -r i1 i2 i3 i4 <<<$red
-    broadcast=$(broadcast $i1.$i2.$i3.$i4 $mask)
-    IFS=. read -r b1 b2 b3 b4 <<<$broadcast
-    netmask=$(netmask $mask)
-    networkIP=()
+else    # Si se pasa una red
+    red=$(network $i1.$i2.$i3.$i4 $mask)            # Calculamos la red
+    IFS=. read -r i1 i2 i3 i4 <<<$red               # Nos quedamos con la IP de la red
+    broadcast=$(broadcast $i1.$i2.$i3.$i4 $mask)    # Calculamos el broadcast
+    IFS=. read -r b1 b2 b3 b4 <<<$broadcast         # Guardamos la IP del broadcast
+    netmask=$(netmask $mask)                        # Convertimos la máscara en formato A.B.C.D
+    networkIP=()                                    # Creamos un array para guardar las IP de la red
     m=0
-    networkIP[0]=$red
-    for ((i = $i1; i <= $b1; i++)); do
+    networkIP[0]=$red                               
+    for ((i = $i1; i <= $b1; i++)); do              # Guardamos todas las IP de la red en el array
         for ((j = $i2; j <= $b2; j++)); do
             for ((k = $i3; k <= $b3; k++)); do
                 for ((h = $((i4 + 1)); h <= $b4; h++)); do
                     let m++
-                    networkIP[$m]=$i.$j.$k.$h # Guardo las IP de la IP
+                    networkIP[$m]=$i.$j.$k.$h       # Guardo las IP de la red
                 done
             done
         done
     done
-    for ((m = 1; m < $((${#networkIP[@]} - 1)); m++)); do
-        # echo ${networkIP[$m]}
+    for ((m = 1; m < $((${#networkIP[@]} - 1)); m++)); do           # Recorro todas las IP de la red (sin la primera y la última)
         if [[ -n $script ]]; then
             if [[ -n $passwdFile ]]; then
                 pass=$(ccrypt -c -k key pass.conf | grep ${networkIP[$m]} | awk '{print $NF}' | sed -e 's/\[//; s/\]//')

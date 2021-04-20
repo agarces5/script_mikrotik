@@ -47,28 +47,45 @@ leer_passwd(){
 }
 #---------------- EJECUTAR SCRIPT ----------------
 ejecutar_script(){
-    if [[ -z $resp ]]; then
-        read -p "¿Deseas restablecer de fabrica el router y cargar el script (yes/No)? " resp
-    fi
-    
-    if [[ $resp == "yes" || $resp == "Yes"  || $resp == "y"  ]]; then
-        echo "Restableciendo de fabrica y Ejecutando script"
-        ssh-keygen -f "/home/$USER/.ssh/known_hosts" -R "$5"
-        sshpass $1 $2 scp -o "StrictHostKeyChecking no" $3 $4@$5:configuracion.rsc
-        sleep 5s
-        sshpass $1 $2 ssh -o "StrictHostKeyChecking no" $4@$5 "system reset-configuration no-defaults=yes run-after-reset=configuracion.rsc"
-    else
-        echo "Ejecutando script"
-        ssh-keygen -f "/home/$USER/.ssh/known_hosts" -R "$5"
-        sshpass $1 $2 scp -o "StrictHostKeyChecking no" $3 $4@$5:configuracion.rsc
-        sleep 5s
-        sshpass $1 $2 ssh -o "StrictHostKeyChecking no" $4@$5 "import configuracion.rsc"
+    if [[ $resp == "yes" || $resp == "Yes"  || $resp == "y"  ]]; then   # Ejecutar restableciendo de fábrica
+        if [[ -n $2 ]]; then                                            # Si hay pass en el fichero
+            echo "Restableciendo de fabrica y Ejecutando script"
+            ssh-keygen -f "/home/$USER/.ssh/known_hosts" -R "$5"
+            sshpass $1 $2 scp -o "StrictHostKeyChecking no" $3 $4@$5:configuracion.rsc
+            sleep 5s
+            sshpass $1 $2 ssh -o "StrictHostKeyChecking no" $4@$5 "system reset-configuration no-defaults=yes run-after-reset=configuracion.rsc"
+        else                                                            # Si no hay pass o está vacía
+            echo "Restableciendo de fabrica y Ejecutando script"
+            ssh-keygen -f "/home/$USER/.ssh/known_hosts" -R "$5"
+            scp -o "StrictHostKeyChecking no" $3 $4@$5:configuracion.rsc
+            sleep 5s
+            ssh -o "StrictHostKeyChecking no" $4@$5 "system reset-configuration no-defaults=yes run-after-reset=configuracion.rsc"                
+        fi
+    else                                                                # Machacar encima de lo anterior
+        if [[ -n $2 ]]; then                                            # Si hay pass en el fichero
+            echo "Ejecutando script"
+            ssh-keygen -f "/home/$USER/.ssh/known_hosts" -R "$5"
+            sshpass $1 $2 scp -o "StrictHostKeyChecking no" $3 $4@$5:configuracion.rsc
+            sleep 5s
+            sshpass $1 $2 ssh -o "StrictHostKeyChecking no" $4@$5 "import configuracion.rsc"
+        else                                                            # Si no hay pass o está vacía
+            echo "Ejecutando script"
+            ssh-keygen -f "/home/$USER/.ssh/known_hosts" -R "$5"
+            scp -o "StrictHostKeyChecking no" $3 $4@$5:configuracion.rsc
+            sleep 5s
+            ssh -o "StrictHostKeyChecking no" $4@$5 "import configuracion.rsc"            
+        fi
     fi
 }
 #---------------- EJECUTAR COMANDO ----------------
 ejecutar_comando(){ 
-    ssh-keygen -f "/home/$USER/.ssh/known_hosts" -R "$4"
-    sshpass $1 $2 ssh -o "StrictHostKeyChecking no" $3@$4 $5 
+    if [[ -n $2 ]]; then                                            # Si hay pass en el fichero
+        ssh-keygen -f "/home/$USER/.ssh/known_hosts" -R "$4"
+        sshpass $1 $2 ssh -o "StrictHostKeyChecking no" $3@$4 $5 
+    else                                                            # Si no hay pass o está vacía
+        ssh-keygen -f "/home/$USER/.ssh/known_hosts" -R "$4"
+        ssh -o "StrictHostKeyChecking no" $3@$4 $5 
+    fi
 }
 
 #---------------- FUNCIONES PARA CALCULAR PARAMETROS DE LA RED ----------------
@@ -94,7 +111,6 @@ netmask() # CALCULAR MASCARA
     local mask=$((0xffffffff << (32 - $1))); shift
     intToip $mask
 }
-
 broadcast() # CALCULAR BROADCAST
 # Example: broadcast 192.168.0.0 27 => 192.168.0.31
 {
@@ -102,7 +118,6 @@ broadcast() # CALCULAR BROADCAST
     local mask=$((0xffffffff << (32 - $1))); shift
     intToip $((addr | ~mask))
 }
-
 network() # CALCULAR RED
 # Example: network 192.68.11.155 21 => 192.68.8.0
 {
