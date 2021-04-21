@@ -9,8 +9,7 @@
 #---------------------------------------------------------------------------------------------------------------------
 
 #---------------- MENU DE AYUDA ----------------
-help_menu()
-{
+help_menu() {
     echo "---------------------- Menu de ayuda ----------------------"
     echo "-u [usuario]              ---> Para determinar el usuario (admin por defecto)"
     echo "-i [IP]                   ---> Para poner la IP (ej. 192.168.1.10) o una red (ej. 192.168.1.10/24"
@@ -21,7 +20,7 @@ help_menu()
     exit 1
 }
 #---------------- MOSTRAR ARGUMENTOS ----------------
-mostrar_args(){
+mostrar_args() {
     echo "-----------------------------------------------------------"
     echo "El usuario es: $user"
     echo "La IP es: $IP"
@@ -30,12 +29,12 @@ mostrar_args(){
     echo "El pass esta en: $passwdFile"
 }
 #---------------- LEER PASSWD SEGURO ----------------
-leer_passwd(){
+leer_passwd() {
     # -- Se guarda la configuracion de la sesion
     # stty actual.
-    STTY_SAVE=`stty -g`
+    STTY_SAVE=$(stty -g)
     stty -echo
-    
+
     # -- Se solicita la introduccion del password al
     # usuario:
     echo
@@ -46,58 +45,51 @@ leer_passwd(){
     echo
 }
 #---------------- EJECUTAR SCRIPT ----------------
-ejecutar_script(){
-    if [[ $resp == "yes" || $resp == "Yes"  || $resp == "y"  ]]; then   # Ejecutar restableciendo de fábrica
-        if [[ -n $2 ]]; then                                            # Si hay pass en el fichero
-            echo "Restableciendo de fabrica y Ejecutando script"
-            ssh-keygen -f "/home/$USER/.ssh/known_hosts" -R "$5"
+ejecutar_script() {
+    ssh-keygen -f "/home/$USER/.ssh/known_hosts" -R "$5"
+    if [[ $resp == "yes" || $resp == "Yes" || $resp == "y" ]]; then # Ejecutar restableciendo de fábrica
+        echo "Restableciendo de fabrica y Ejecutando script"
+        if [[ -n $2 ]]; then # Si hay pass en el fichero
             sshpass $1 $2 scp -o "StrictHostKeyChecking no" $3 $4@$5:configuracion.rsc
             sleep 5s
             sshpass $1 $2 ssh -o "StrictHostKeyChecking no" $4@$5 "system reset-configuration no-defaults=yes run-after-reset=configuracion.rsc"
-        else                                                            # Si no hay pass o está vacía
-            echo "Restableciendo de fabrica y Ejecutando script"
-            ssh-keygen -f "/home/$USER/.ssh/known_hosts" -R "$5"
+        else # Si no hay pass o está vacía
             scp -o "StrictHostKeyChecking no" $3 $4@$5:configuracion.rsc
             sleep 5s
-            ssh -o "StrictHostKeyChecking no" $4@$5 "system reset-configuration no-defaults=yes run-after-reset=configuracion.rsc"                
+            ssh -o "StrictHostKeyChecking no" $4@$5 "system reset-configuration no-defaults=yes run-after-reset=configuracion.rsc"
         fi
-    else                                                                # Machacar encima de lo anterior
-        if [[ -n $2 ]]; then                                            # Si hay pass en el fichero
-            echo "Ejecutando script"
-            ssh-keygen -f "/home/$USER/.ssh/known_hosts" -R "$5"
+    else # Machacar encima de lo anterior
+        echo "Ejecutando script"
+        if [[ -n $2 ]]; then # Si hay pass en el fichero
             sshpass $1 $2 scp -o "StrictHostKeyChecking no" $3 $4@$5:configuracion.rsc
             sleep 5s
             sshpass $1 $2 ssh -o "StrictHostKeyChecking no" $4@$5 "import configuracion.rsc"
-        else                                                            # Si no hay pass o está vacía
-            echo "Ejecutando script"
-            ssh-keygen -f "/home/$USER/.ssh/known_hosts" -R "$5"
+        else # Si no hay pass o está vacía
             scp -o "StrictHostKeyChecking no" $3 $4@$5:configuracion.rsc
             sleep 5s
-            ssh -o "StrictHostKeyChecking no" $4@$5 "import configuracion.rsc"            
+            ssh -o "StrictHostKeyChecking no" $4@$5 "import configuracion.rsc"
         fi
     fi
 }
 #---------------- EJECUTAR COMANDO ----------------
-ejecutar_comando(){ 
-    if [[ -n $2 ]]; then                                            # Si hay pass en el fichero
-        ssh-keygen -f "/home/$USER/.ssh/known_hosts" -R "$4"
-        sshpass $1 $2 ssh -o "StrictHostKeyChecking no" $3@$4 $5 
-    else                                                            # Si no hay pass o está vacía
-        ssh-keygen -f "/home/$USER/.ssh/known_hosts" -R "$4"
-        ssh -o "StrictHostKeyChecking no" $3@$4 $5 
+ejecutar_comando() {
+    ssh-keygen -f "/home/$USER/.ssh/known_hosts" -R "$4"
+    if [[ -n $2 ]]; then # Si hay pass en el fichero
+        sshpass $1 $2 ssh -o "StrictHostKeyChecking no" $3@$4 $5
+    else # Si no hay pass o está vacía
+        ssh -o "StrictHostKeyChecking no" $3@$4 $5
     fi
 }
 
 #---------------- FUNCIONES PARA CALCULAR PARAMETROS DE LA RED ----------------
-ipToint() # PASAR UNA IP A ENTERO
-{
+ipToint() { # PASAR UNA IP A ENTERO
     local a b c d
-    { IFS=. read a b c d; } <<< $1
-    echo $(((((((a << 8) | b) << 8) | c) << 8) | d))  #(((192*2^8+168)2^8)+0*2^8)+0=192*2^24+168*2^16+0*2^8+0
+    { IFS=. read a b c d; } <<<$1
+    echo $(((((((a << 8) | b) << 8) | c) << 8) | d)) #(((192*2^8+168)2^8)+0*2^8)+0=192*2^24+168*2^16+0*2^8+0
 }
-intToip() # PASAR DE ENTERO A IP
-{
-    local ui32=$1; shift
+intToip() { # PASAR DE ENTERO A IP
+    local ui32=$1
+    shift
     local ip n
     for n in 1 2 3 4; do
         ip=$((ui32 & 0xff))${ip:+.}$ip
@@ -105,23 +97,71 @@ intToip() # PASAR DE ENTERO A IP
     done
     echo $ip
 }
-netmask() # CALCULAR MASCARA
-# Example: netmask 27 => 255.255.255.224
-{
-    local mask=$((0xffffffff << (32 - $1))); shift
+netmask() { # CALCULAR MASCARA
+    # Example: netmask 27 => 255.255.255.224
+    local mask=$((0xffffffff << (32 - $1)))
+    shift
     intToip $mask
 }
-broadcast() # CALCULAR BROADCAST
-# Example: broadcast 192.168.0.0 27 => 192.168.0.31
-{
-    local addr=$(ipToint $1); shift
-    local mask=$((0xffffffff << (32 - $1))); shift
+broadcast() { # CALCULAR BROADCAST
+    # Example: broadcast 192.168.0.0 27 => 192.168.0.31
+    local addr=$(ipToint $1)
+    shift
+    local mask=$((0xffffffff << (32 - $1)))
+    shift
     intToip $((addr | ~mask))
 }
-network() # CALCULAR RED
-# Example: network 192.68.11.155 21 => 192.68.8.0
-{
-    local addr=$(ipToint $1); shift
-    local mask=$((0xffffffff << (32 -$1))); shift
+network() { # CALCULAR RED
+    # Example: network 192.68.11.155 21 => 192.68.8.0
+    local addr=$(ipToint $1)
+    shift
+    local mask=$((0xffffffff << (32 - $1)))
+    shift
     intToip $((addr & mask))
+}
+add_passwd() {
+    # Sin pedir IP  --> Se ejecuta add_passwd $IP
+    #----------- GUARDAR VARIABLES ----------------
+    local passwdFile=pass.conf
+    local key=key
+    local SECRET_PASSWD=$2
+    IFS=./ read -r i1 i2 i3 i4 mask <<<$1
+    if [[ -z $SECRET_PASSWD ]]; then
+        leer_passwd
+    fi
+    #----------------------------------------------
+    if [[ -z $mask ]]; then # Solo introducimos IP
+        if [[ $(grep -c "\<$1\>" $passwdFile) -ne 0 ]]; then
+            (grep -v "\<$1\>" $passwdFile && echo "IP = [$1] ; PASS = [$SECRET_PASSWD]") | sort >tmp.txt && cat tmp.txt >$passwdFile && rm tmp.txt
+        else
+            echo "IP = [$1] ; PASS = [$SECRET_PASSWD]" >>$passwdFile
+            cat $passwdFile | sort >tmp.txt && cat tmp.txt >$passwdFile && rm tmp.txt
+        fi
+    else                                                   # Introducimos IP y máscara
+        local red=$(network $i1.$i2.$i3.$i4 $mask)         # Calculamos la red
+        IFS=. read -r i1 i2 i3 i4 <<<$red                  # Nos quedamos con la IP de la red
+        local broadcast=$(broadcast $i1.$i2.$i3.$i4 $mask) # Calculamos el broadcast
+        IFS=. read -r b1 b2 b3 b4 <<<$broadcast            # Guardamos la IP del broadcast
+        local netmask=$(netmask $mask)                     # Convertimos la máscara en formato A.B.C.D
+        local networkIP=()                                 # Creamos un array para guardar las IP de la red
+        m=0
+        for ((i = $i1; i <= $b1; i++)); do # Guardamos todas las IP de la red en el array
+            for ((j = $i2; j <= $b2; j++)); do
+                for ((k = $i3; k <= $b3; k++)); do
+                    for ((h = $i4; h <= $b4; h++)); do
+                        networkIP[$m]=$i.$j.$k.$h # Guardo las IP de la red
+                        if [[ $m -ne 0 ]]; then
+                            if [[ $(grep -c "\<${networkIP[$m]}\>" $passwdFile) -ne 0 ]]; then # Si ya está en el passwdFile
+                                (grep -v "\<${networkIP[$m]}\>" $passwdFile && echo "IP = [${networkIP[$m]}] ; PASS = [$SECRET_PASSWD]") | sort >tmp.txt && cat tmp.txt >$passwdFile && rm tmp.txt
+                            else
+                                echo "IP = [${networkIP[$m]}] ; PASS = [$SECRET_PASSWD]" >>$passwdFile
+                                cat $passwdFile | sort >tmp.txt && cat tmp.txt >$passwdFile && rm tmp.txt
+                            fi
+                        fi
+                        let m++
+                    done
+                done
+            done
+        done
+    fi
 }

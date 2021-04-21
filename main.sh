@@ -6,14 +6,16 @@ user=admin
 #--------------------------------- COMIENZO DEL SCRIPT ---------------------------------------------------------------
 #---------------------------------------------------------------------------------------------------------------------
 resp=$(echo $* | grep -iw "y$" | awk '{print $NF}')
+passwdFile=pass.conf
+key=key
+ccrypt -d -k $key $passwdFile
 #Leer variables
-while getopts u:i:s:c:p: flag; do
+while getopts u:i:s:c: flag; do
     case "${flag}" in
     u) user=${OPTARG} ;;
     i) IP=${OPTARG} ;;
     s) script=${OPTARG} ;;
     c) comando=${OPTARG} ;;
-    p) passwdFile=${OPTARG} ;;
     esac
 done
 mostrar_args
@@ -29,23 +31,25 @@ fi
 IFS=./ read -r i1 i2 i3 i4 mask <<<$IP  # Leer y separar la IP y la mascara que introducimos
 if [[ -z $mask ]]; then
     if [[ -n $script ]]; then
-        if [[ -n $passwdFile ]]; then
-            pass=$(ccrypt -c -k key pass.conf | grep $IP | awk '{print $NF}' | sed -e 's/\[//; s/\]//')
-            ejecutar_script -p $pass $script $user $IP
+        if [[ $(grep -c "\<$IP\>" $passwdFile) -ne 0 ]]; then
+            pass=$(grep "\<$IP\>" $passwdFile | awk '{print $NF}' | sed -e 's/\[//; s/\]//')
+            ejecutar_script -p "$pass" "$script" "$user" "$IP"
             unset pass
         else
             leer_passwd
-            ejecutar_script -p $SECRET_PASSWD $script $user $IP
+            add_passwd "$IP" "$SECRET_PASSWD"
+            ejecutar_script -p "$SECRET_PASSWD" "$script" "$user" "$IP"
         fi
     fi
     if [[ -n $comando ]]; then
-        if [[ -n $passwdFile ]]; then
-            pass=$(ccrypt -c -k key pass.conf | grep $IP | awk '{print $NF}' | sed -e 's/\[//; s/\]//')
-            ejecutar_comando -p $pass $user $IP $comando
+        if [[ $(grep -c "\<$IP\>" $passwdFile) -ne 0 ]]; then
+            pass=$(grep "\<$IP\>" $passwdFile | awk '{print $NF}' | sed -e 's/\[//; s/\]//')
+            ejecutar_comando -p "$pass" "$user" "$IP" "$comando"
             unset pass
         else
             leer_passwd
-            ejecutar_comando -p $SECRET_PASSWD $user $IP $comando
+            add_passwd "$IP" "$SECRET_PASSWD"
+            ejecutar_comando -p "$SECRET_PASSWD" "$user" "$IP" "$comando"
         fi
     fi
 else    # Si se pasa una red
@@ -66,27 +70,30 @@ else    # Si se pasa una red
                 done
             done
         done
-    done
+    done 
     for ((m = 1; m < $((${#networkIP[@]} - 1)); m++)); do           # Recorro todas las IP de la red (sin la primera y la última)
         if [[ -n $script ]]; then
-            if [[ -n $passwdFile ]]; then
-                pass=$(ccrypt -c -k key pass.conf | grep ${networkIP[$m]} | awk '{print $NF}' | sed -e 's/\[//; s/\]//')
-                ejecutar_script -p $pass $script $user ${networkIP[$m]}
+            if [[ $(grep -c "\<${networkIP[$m]}\>" $passwdFile) -ne 0 ]]; then
+                pass=$(grep "\<${networkIP[$m]}\>" pass.conf | awk '{print $NF}' | sed -e 's/\[//; s/\]//')
+                ejecutar_script -p "$pass" "$script" "$user" "${networkIP[$m]}"
                 unset pass
             else
                 leer_passwd
-                ejecutar_script -p $SECRET_PASSWD $script $user ${networkIP[$m]}
+                add_passwd "$IP" "$SECRET_PASSWD"
+                ejecutar_script -p "$SECRET_PASSWD" "$script" "$user" "${networkIP[$m]}"
             fi
         fi
         if [[ -n $comando ]]; then
-            if [[ -n $passwdFile ]]; then
-                pass=$(ccrypt -c -k key pass.conf | grep ${networkIP[$m]} | awk '{print $NF}' | sed -e 's/\[//; s/\]//')
-                ejecutar_comando -p $pass $user ${networkIP[$m]} $comando
+            if [[ $(grep -c "\<${networkIP[$m]}\>" $passwdFile) -ne 0 ]]; then
+                pass=$(grep "\<${networkIP[$m]}\>" pass.conf | awk '{print $NF}' | sed -e 's/\[//; s/\]//')
+                ejecutar_comando -p "$pass" "$user" "${networkIP[$m]}" "$comando"
                 unset pass
             else
                 leer_passwd
-                ejecutar_comando -p $SECRET_PASSWD $user ${networkIP[$m]} $comando
+                add_passwd "$IP" "$SECRET_PASSWD"
+                ejecutar_comando -p "$SECRET_PASSWD" "$user" "${networkIP[$m]}" "$comando"
             fi
         fi
     done
 fi
+ccrypt -e -k $key $passwdFile

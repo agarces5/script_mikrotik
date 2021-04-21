@@ -2,18 +2,21 @@
 source funciones.sh
 # Sin pedir IP  --> Se ejecuta add_passwd $IP
 #----------- GUARDAR VARIABLES ----------------
-archivo=pass.conf
+passwdFile=pass.conf
 key=key
+SECRET_PASSWD=$2
 IFS=./ read -r i1 i2 i3 i4 mask <<<$1
-leer_passwd
+if [[ -z $SECRET_PASSWD ]]; then
+    leer_passwd
+fi
 #----------------------------------------------
-ccrypt -d -k $key $archivo
+ccrypt -d -k $key $passwdFile
 if [[ -z $mask ]]; then # Solo introducimos IP
-    if [[ $(grep -c "\<$1\>" $archivo) -ne 0 ]]; then
-        (grep -v "\<$1\>" $archivo && echo "IP = [$1] ; PASS = [$SECRET_PASSWD]") | sort >tmp.txt && cat tmp.txt >$archivo && rm tmp.txt
+    if [[ $(grep -c "\<$1\>" $passwdFile) -ne 0 ]]; then
+        (grep -v "\<$1\>" $passwdFile && echo "IP = [$1] ; PASS = [$SECRET_PASSWD]") | sort >tmp.txt && cat tmp.txt >$passwdFile && rm tmp.txt
     else
-        echo "IP = [$1] ; PASS = [$SECRET_PASSWD]" >>$archivo
-        cat $archivo | sort >tmp.txt && cat tmp.txt >$archivo && rm tmp.txt
+        echo "IP = [$1] ; PASS = [$SECRET_PASSWD]" >>$passwdFile
+        cat $passwdFile | sort >tmp.txt && cat tmp.txt >$passwdFile && rm tmp.txt
     fi
 else                                             # Introducimos IP y máscara
     red=$(network $i1.$i2.$i3.$i4 $mask)         # Calculamos la red
@@ -29,11 +32,11 @@ else                                             # Introducimos IP y máscara
                 for ((h = $i4; h <= $b4; h++)); do
                     networkIP[$m]=$i.$j.$k.$h # Guardo las IP de la red
                     if [[ $m -ne 0 ]]; then
-                        if [[ $(grep -c "\<${networkIP[$m]}\>" $archivo) -ne 0 ]]; then
-                            (grep -v "\<${networkIP[$m]}\>" $archivo && echo "IP = [${networkIP[$m]}] ; PASS = [$SECRET_PASSWD]") | sort >tmp.txt && cat tmp.txt >$archivo && rm tmp.txt
+                        if [[ $(grep -c "\<${networkIP[$m]}\>" $passwdFile) -ne 0 ]]; then         # Si ya está en el passwdFile
+                            (grep -v "\<${networkIP[$m]}\>" $passwdFile && echo "IP = [${networkIP[$m]}] ; PASS = [$SECRET_PASSWD]") | sort >tmp.txt && cat tmp.txt >$passwdFile && rm tmp.txt
                         else
-                            echo "IP = [${networkIP[$m]}] ; PASS = [$SECRET_PASSWD]" >>$archivo
-                            cat $archivo | sort >tmp.txt && cat tmp.txt >$archivo && rm tmp.txt
+                            echo "IP = [${networkIP[$m]}] ; PASS = [$SECRET_PASSWD]" >>$passwdFile
+                            cat $passwdFile | sort >tmp.txt && cat tmp.txt >$passwdFile && rm tmp.txt
                         fi
                     fi
                     let m++
@@ -42,4 +45,4 @@ else                                             # Introducimos IP y máscara
         done
     done
 fi
-ccrypt -e -k $key $archivo
+ccrypt -e -k $key $passwdFile
